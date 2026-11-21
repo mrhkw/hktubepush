@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import PluginsScreen from "./src/plugins/PluginsScreen";
 import {
   autoSelectModel,
   discoverModels,
@@ -120,6 +121,7 @@ export default function App(): React.JSX.Element {
   const [busy, setBusy] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pluginsOpen, setPluginsOpen] = useState(false);
   const [status, setStatus] = useState("Ready");
 
   const selectedProvider = PROVIDERS[provider];
@@ -247,6 +249,8 @@ export default function App(): React.JSX.Element {
     }
   }
 
+  if (pluginsOpen) return <PluginsScreen onBack={() => setPluginsOpen(false)} />;
+
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <StatusBar style="light" />
@@ -257,9 +261,12 @@ export default function App(): React.JSX.Element {
             <Text style={styles.title}>Personal AI OS</Text>
             <Text style={styles.subtitle}>One workspace for your AI providers</Text>
           </View>
-          <TouchableOpacity style={styles.settingsButton} onPress={() => setSettingsOpen((value) => !value)}>
-            <Text style={styles.settingsText}>{settingsOpen ? "Close" : "API Manager"}</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.pluginsButton} onPress={() => setPluginsOpen(true)}><Text style={styles.settingsText}>Plugins</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.settingsButton} onPress={() => setSettingsOpen((value) => !value)}>
+              <Text style={styles.settingsText}>{settingsOpen ? "Close" : "API Manager"}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.statsRow}>
@@ -340,6 +347,8 @@ const styles = StyleSheet.create({
   content: { padding: 18, paddingTop: 36, gap: 15 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   headerCopy: { flex: 1 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 6 },
+  pluginsButton: { borderWidth: 1, borderColor: "#45405f", backgroundColor: "#171d2b", paddingVertical: 11, paddingHorizontal: 11, borderRadius: 12 },
   eyebrow: { color: "#a78bfa", fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
   title: { color: "#f8fafc", fontSize: 27, fontWeight: "800", marginTop: 5 },
   subtitle: { color: "#9ca3af", fontSize: 12, marginTop: 3 },
