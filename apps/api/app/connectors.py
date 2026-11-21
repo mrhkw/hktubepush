@@ -211,3 +211,66 @@ async def get_access_token(provider: str) -> str:
         with _db() as db:
             db.execute("UPDATE connected_accounts SET token_cipher=?, nonce=?, expires_at=?, updated_at=? WHERE provider=?", (cipher, nonce, expires, int(time.time()), provider))
     return str(token["access_token"])
+
+
+class GmailSearchRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=500)
+    max_results: int = Field(default=10, ge=1, le=50)
+
+
+@router.get("/tools", dependencies=[Depends(require_api_auth)])
+async def connector_tools() -> dict[str, Any]:
+    return {"tools": [
+        {"name": "gmail.search", "connector": "google", "description": "Search Gmail messages using Gmail query syntax", "read_only": True, "required_scope": "https://www.googleapis.com/auth/gmail.readonly"},
+        {"name": "drive.search", "connector": "google", "description": "Search Google Drive files by name or fullText", "read_only": True, "required_scope": "https://www.googleapis.com/auth/drive.readonly"},
+        {"name": "calendar.list_events", "connector": "google", "description": "List events from the primary Google Calendar", "read_only": True, "required_scope": "https://www.googleapis.com/auth/calendar.readonly"},
+        {"name": "github.list_repositories", "connector": "github", "description": "List repositories visible to the connected GitHub account", "read_only": True, "required_scope": "repo"},
+    ]}
+
+
+@router.post("/tools/gmail.search", dependencies=[Depends(require_api_auth)])
+async def gmail_search(payload: GmailSearchRequest) -> dict[str, Any]:
+    token = await get_access_token("google")
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        response = await client.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params={"q": payload.query, "maxResults": payload.max_results}, headers={"Authorization": f"Bearer {token}"})
+        if response.is_error:
+            raise HTTPException(status_code=502, detail=f"Gmail search failed ({response.status_code}). Check granted scopes and reconnect.")
+        listing = response.json()
+        messages = []
+        for item in listing.get("messages", []):
+            detail = await client.get(f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{item['id']}", params={"format": "metadata", "metadataHeaders": ["Subject", "From", "Date"]}, headers={"Authorization": f"Bearer {token}"})
+            if detail.is_success:
+                data = detail.json()
+                headers = {h.get("name", "").lower(): h.get("value", "") for h in data.get("payload", {}).get("headers", [])}
+                messages.append({"id": data.get("id"), "threadId": data.get("threadId"), "subject": headers.get("subject"), "from": headers.get("from"), "date": headers.get("date"), "snippet": data.get("snippet", "")})
+    return {"messages": messages, "resultSizeEstimate": listing.get("resultSizeEstimate", 0)}
+
+
+@router.get("/tools/drive.search", dependencies=[Depends(require_api_auth)])
+async def drive_search(q: str = Query(min_length=1, max_length=300), page_size: int = Query(default=10, ge=1, le=50)) -> dict[str, Any]:
+    token = await get_access_token("google")
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        response = await client.get("https://www.googleapis.com/drive/v3/files", params={"q": f"name contains '{q.replace(chr(39), chr(92)+chr(39))}' or fullText contains '{q.replace(chr(39), chr(92)+chr(39))}'", "pageSize": page_size, "fields": "files(id,name,mimeType,modifiedTime,webViewLink),nextPageToken"}, headers={"Authorization": f"Bearer {token}"})
+        if response.is_error:
+            raise HTTPException(status_code=502, detail=f"Drive search failed ({response.status_code}). Check granted scopes and reconnect.")
+        return response.json()
+
+
+@router.get("/tools/calendar.list_events", dependencies=[Depends(require_api_auth)])
+async def calendar_events(max_results: int = Query(default=20, ge=1, le=100)) -> dict[str, Any]:
+    token = await get_access_token("google")
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        response = await client.get("https://www.googleapis.com/calendar/v3/calendars/primary/events", params={"maxResults": max_results, "orderBy": "startTime", "singleEvents": "true", "timeMin": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, headers={"Authorization": f"Bearer {token}"})
+        if response.is_error:
+            raise HTTPException(status_code=502, detail=f"Calendar request failed ({response.status_code}). Check granted scopes and reconnect.")
+        return response.json()
+
+
+@router.get("/tools/github.list_repositories", dependencies=[Depends(require_api_auth)])
+async def github_repositories(per_page: int = Query(default=30, ge=1, le=100)) -> dict[str, Any]:
+    token = await get_access_token("github")
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        response = await client.get("https://api.github.com/user/repos", params={"per_page": per_page, "sort": "updated"}, headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"})
+        if response.is_error:
+            raise HTTPException(status_code=502, detail=f"GitHub repository request failed ({response.status_code}). Check token permissions and reconnect.")
+        return {"repositories": [{"id": item.get("id"), "name": item.get("name"), "full_name": item.get("full_name"), "private": item.get("private"), "html_url": item.get("html_url"), "description": item.get("description")} for item in response.json()]}
