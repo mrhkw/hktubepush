@@ -10,7 +10,7 @@ npm install
 npm start
 ```
 
-For an Android emulator, the default backend URL is `http://10.0.2.2:8787`. For a physical device, set the Backend URL in Settings to the HTTPS URL of the deployed backend or the LAN IP of the development machine.
+The app does not assume an emulator-only host. On first launch, open Settings and enter the backend's HTTPS URL (or a LAN URL reachable from the phone), then press **Save settings**. The URL, provider keys, GitHub token, and optional backend secret remain stored across restarts; secrets are stored in Android SecureStore and are never logged.
 
 ## Features
 

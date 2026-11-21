@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { config } from "./config.js";
 import { githubTool, mcpTool, webFetch, webSearch, webhookTool } from "./connectors.js";
 import { chat } from "./providers.js";
@@ -9,14 +9,17 @@ const approvals = new Map<string, { request: ApprovalRequest; token: string; exp
 const writeOperations = new Set(["commit_file", "create_branch", "create_pull_request"]);
 
 const inputString = (value: unknown) => typeof value === "string" ? value : "";
+const stepId = (goal: string, index: number) => createHash("sha256").update(`${goal.trim().toLowerCase()}::${index}`).digest("hex").slice(0, 24);
 const inferSteps = (goal: string): PlanStep[] => {
+  let index = 0;
+  const nextId = () => stepId(goal, index++);
   const lower = goal.toLowerCase();
-  const steps: PlanStep[] = [{ id: randomUUID(), title: "Understand the request", description: "Validate the goal and identify the required information.", risky: false }];
-  if (/search|research|latest|compare/.test(lower)) steps.push({ id: randomUUID(), title: "Research the request", description: "Search trusted web results and fetch relevant source material.", tool: "web_search", input: { query: goal }, risky: false });
-  if (/fetch|read url|open https?:/.test(lower)) steps.push({ id: randomUUID(), title: "Read the requested page", description: "Fetch the requested public page with SSRF protections.", tool: "web_fetch", input: { url: goal.match(/https?:\/\/[^\s]+/)?.[0] ?? "" }, risky: false });
-  if (/github|repository|repo|pull request|commit|branch|file/.test(lower)) steps.push({ id: randomUUID(), title: "Inspect GitHub context", description: "Use the GitHub connector to inspect the requested repository or file.", tool: "github", input: { operation: "list_repositories" }, risky: false });
-  if (/webhook|send request|call api/.test(lower)) steps.push({ id: randomUUID(), title: "Call the external connector", description: "Send the requested outbound request only after explicit approval.", tool: "webhook", input: {}, risky: true });
-  steps.push({ id: randomUUID(), title: "Prepare the answer", description: "Summarize verified results and remaining actions.", risky: false });
+  const steps: PlanStep[] = [{ id: nextId(), title: "Understand the request", description: "Validate the goal and identify the required information.", risky: false }];
+  if (/search|research|latest|compare/.test(lower)) steps.push({ id: nextId(), title: "Research the request", description: "Search trusted web results and fetch relevant source material.", tool: "web_search", input: { query: goal }, risky: false });
+  if (/fetch|read url|open https?:/.test(lower)) steps.push({ id: nextId(), title: "Read the requested page", description: "Fetch the requested public page with SSRF protections.", tool: "web_fetch", input: { url: goal.match(/https?:\/\/[^\s]+/)?.[0] ?? "" }, risky: false });
+  if (/github|repository|repo|pull request|commit|branch|file/.test(lower)) steps.push({ id: nextId(), title: "Inspect GitHub context", description: "Use the GitHub connector to inspect the requested repository or file.", tool: "github", input: { operation: "list_repositories" }, risky: false });
+  if (/webhook|send request|call api/.test(lower)) steps.push({ id: nextId(), title: "Call the external connector", description: "Send the requested outbound request only after explicit approval.", tool: "webhook", input: {}, risky: true });
+  steps.push({ id: nextId(), title: "Prepare the answer", description: "Summarize verified results and remaining actions.", risky: false });
   return steps.slice(0, config.maxAgentSteps);
 };
 

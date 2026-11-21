@@ -13,12 +13,16 @@ export type AgentConfig = {
 };
 
 const cleanBase = (baseUrl: string) => baseUrl.trim().replace(/\/$/, "");
+const requireBaseUrl = (baseUrl: string) => { const value = cleanBase(baseUrl); if (!value) throw new Error("Backend URL is not configured. Open Settings, enter your HTTPS backend URL, and press Save."); return value; };
 const headers = (config: AgentConfig) => ({ "content-type": "application/json", ...(config.backendSecret ? { "x-agent-secret": config.backendSecret } : {}) });
 const request = async <T>(config: AgentConfig, path: string, body: unknown): Promise<T> => {
-  const response = await fetch(`${cleanBase(config.baseUrl)}${path}`, { method: "POST", headers: headers(config), body: JSON.stringify(body) });
-  const json = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(json.error ?? `Backend request failed (${response.status})`);
-  return json as T;
+  const baseUrl = requireBaseUrl(config.baseUrl);
+  try {
+    const response = await fetch(`${baseUrl}${path}`, { method: "POST", headers: headers(config), body: JSON.stringify(body) });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json.error ?? `Backend request failed (${response.status})`);
+    return json as T;
+  } catch (error) { if (error instanceof Error && !/Network request failed|Failed to fetch/.test(error.message)) throw error; throw new Error(`Could not reach the backend at ${baseUrl}. Check the URL, HTTPS certificate, and network connection.`); }
 };
 
 export const chat = (config: AgentConfig, input: { messages: ChatMessage[]; provider: Provider; systemPrompt?: string; attachments?: Attachment[] }) => request<{ provider: Provider; model: string; text: string }>(config, "/v1/chat", { ...input, credentials: config.credentials, taskType: input.attachments?.length ? "multimodal" : "chat" });
@@ -35,8 +39,11 @@ const parseSse = (lineBuffer: string, onEvent: (event: any) => void) => {
 };
 
 export const streamChat = async (config: AgentConfig, input: { messages: ChatMessage[]; provider: Provider; systemPrompt?: string; attachments?: Attachment[] }, onEvent: (event: any) => void) => {
-  const response = await fetch(`${cleanBase(config.baseUrl)}/v1/chat/stream`, { method: "POST", headers: headers(config), body: JSON.stringify({ ...input, stream: true, credentials: config.credentials, taskType: input.attachments?.length ? "multimodal" : "chat" }) });
-  if (!response.ok) throw new Error((await response.text()).slice(0, 500));
+  const baseUrl = requireBaseUrl(config.baseUrl);
+  let response: Response;
+  try { response = await fetch(`${baseUrl}/v1/chat/stream`, { method: "POST", headers: headers(config), body: JSON.stringify({ ...input, stream: true, credentials: config.credentials, taskType: input.attachments?.length ? "multimodal" : "chat" }) }); }
+  catch { throw new Error(`Could not reach the backend at ${baseUrl}. Check the URL, HTTPS certificate, and network connection.`); }
+  if (!response.ok) throw new Error(`Chat request failed (${response.status}): ${(await response.text()).slice(0, 500)}`);
   if (!response.body?.getReader) { onEvent(await response.json()); return; }
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -51,8 +58,11 @@ export const streamChat = async (config: AgentConfig, input: { messages: ChatMes
 
 export const planAgent = (config: AgentConfig, goal: string) => request<{ steps: any[] }>(config, "/v1/agent/plan", { goal });
 export const runAgent = async (config: AgentConfig, goal: string, onEvent: (event: AgentEvent) => void, approvedActionIds: string[] = []) => {
-  const response = await fetch(`${cleanBase(config.baseUrl)}/v1/agent/run`, { method: "POST", headers: headers(config), body: JSON.stringify({ goal, credentials: config.credentials, githubToken: config.githubToken, webhookAllowlist: config.webhookAllowlist, approvedActionIds, taskType: "agent" }) });
-  if (!response.ok) throw new Error((await response.text()).slice(0, 500));
+  const baseUrl = requireBaseUrl(config.baseUrl);
+  let response: Response;
+  try { response = await fetch(`${baseUrl}/v1/agent/run`, { method: "POST", headers: headers(config), body: JSON.stringify({ goal, credentials: config.credentials, githubToken: config.githubToken, webhookAllowlist: config.webhookAllowlist, approvedActionIds, taskType: "agent" }) }); }
+  catch { throw new Error(`Could not reach the backend at ${baseUrl}. Check the URL, HTTPS certificate, and network connection.`); }
+  if (!response.ok) throw new Error(`Agent request failed (${response.status}): ${(await response.text()).slice(0, 500)}`);
   const reader = response.body?.getReader();
   if (!reader) throw new Error("Streaming is not supported by this device");
   const decoder = new TextDecoder(); let buffer = "";

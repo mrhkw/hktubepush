@@ -25,3 +25,8 @@ test("creates bounded plans with risky write recognition", () => {
   const plan = createPlan("Use GitHub to create a pull request");
   assert.ok(plan.some(step => step.tool === "github"));
 });
+test("keeps plan step IDs stable for approval resumption", () => {
+  const first = createPlan("Use GitHub to create a pull request");
+  const second = createPlan("Use GitHub to create a pull request");
+  assert.deepEqual(first.map(step => step.id), second.map(step => step.id));
+});

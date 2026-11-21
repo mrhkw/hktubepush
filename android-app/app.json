@@ -11,6 +11,6 @@
       "adaptiveIcon": { "backgroundColor": "#0b1020" }
     },
     "plugins": ["expo-document-picker", "expo-secure-store"],
-    "extra": { "backendUrl": "http://10.0.2.2:8787" }
+    "extra": { "backendUrl": "" }
   }
 }

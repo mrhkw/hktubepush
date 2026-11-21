@@ -12,9 +12,9 @@ const encodeBase64 = (value: string) => Buffer.from(value, "utf8").toString("bas
 
 export const githubTool = async (input: Record<string, unknown>, token: string) => {
   const operation = assertNonEmptyString(input.operation, "github.operation", 40);
+  if (operation === "list_repositories") return github("/user/repos?per_page=100&sort=updated", { method: "GET" }, token);
   const owner = assertNonEmptyString(input.owner, "github.owner", 100);
   const repo = assertNonEmptyString(input.repo, "github.repo", 100);
-  if (operation === "list_repositories") return github("/user/repos?per_page=100&sort=updated", { method: "GET" }, token);
   if (operation === "read_file") {
     const path = encodeURIComponent(assertNonEmptyString(input.path, "github.path", 500)).replace(/%2F/g, "/");
     const result = await github(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path}`, { method: "GET" }, token);

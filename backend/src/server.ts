@@ -40,7 +40,7 @@ app.post("/v1/chat", asyncRoute(async (req, res) => {
 app.post("/v1/chat/stream", asyncRoute(async (req, res) => {
   const request = body<ChatRequest>(req);
   sse(res);
-  try { for await (const event of streamChat({ ...request, stream: true })) sendEvent(res, event); } catch (error) { sendEvent(res, { type: "error", error: error instanceof Error ? error.message : "Stream failed" }); }
+  try { for await (const event of streamChat({ ...request, stream: true })) sendEvent(res, event); } catch (error) { sendEvent(res, { type: "error", error: redactSecrets(error instanceof Error ? error.message : "Stream failed") }); }
   res.end();
 }));
 app.post("/v1/agent/plan", asyncRoute(async (req, res) => {
@@ -52,7 +52,7 @@ app.post("/v1/agent/run", asyncRoute(async (req, res) => {
   const request = body<AgentRequest>(req);
   if (typeof request.goal !== "string" || !request.goal.trim()) return void res.status(400).json({ error: "goal is required" });
   sse(res);
-  try { for await (const event of runAgent(request)) sendEvent(res, event); } catch (error) { sendEvent(res, { type: "error", data: error instanceof Error ? error.message : "Agent failed" }); }
+  try { for await (const event of runAgent(request)) sendEvent(res, redactSecrets(event)); } catch (error) { sendEvent(res, { type: "error", data: redactSecrets(error instanceof Error ? error.message : "Agent failed") }); }
   res.end();
 }));
 app.post("/v1/agent/approve", asyncRoute(async (req, res) => {
@@ -68,7 +68,7 @@ app.post("/v1/files/inspect", asyncRoute(async (req, res) => {
 }));
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  const message = error instanceof Error ? error.message : "Request failed";
+  const message = redactSecrets(error instanceof Error ? error.message : "Request failed");
   res.status(400).json({ error: message });
 });
 
