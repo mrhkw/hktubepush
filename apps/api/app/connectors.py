@@ -106,7 +106,9 @@ class ConnectorStatus(BaseModel):
 
 @router.get("/catalog", dependencies=[Depends(require_api_auth)])
 async def catalog() -> dict[str, Any]:
-    return {"connectors": [{"id": key, "name": item["label"], "auth": "oauth2_pkce", "scopes": item["scopes"], "connected": False} for key, item in PROVIDERS.items()]}
+    with _db() as db:
+        connected = {row["provider"] for row in db.execute("SELECT provider FROM connected_accounts").fetchall()}
+    return {"connectors": [{"id": key, "name": item["label"], "auth": "oauth2_pkce", "scopes": item["scopes"], "connected": key in connected} for key, item in PROVIDERS.items()]}
 
 
 @router.get("", dependencies=[Depends(require_api_auth)])
