@@ -2,22 +2,35 @@
 
 Updated: 2026-11-21
 
-## Repository handling
-- Original HkTube source remains untouched on `main`.
-- Backup branch created: `hktube-preserved-2026-11-21`.
-- Personal AI development branch created: `personal-ai`.
-- Work is isolated in `personal-ai/` while the repository is prepared for conversion.
-- The GitHub connection available in this session can create branches and commit files, but cannot create or rename repositories. A genuinely separate HkTube repository still needs to be created before deleting HkTube files from the new product's default branch.
+## Repository separation
+- `mrhkw/hktubepush` default branch is now the Personal AI OS project.
+- Original HkTube source from before conversion is preserved in branch `hktube-preserved-2026-11-21`.
+- The existing `mrhkw/hktube` repository remains a separate HkTube project.
+- No HkTube source files are included in the new Personal AI OS root tree.
 
-## Milestone 1
-- [x] Architecture and security baseline documented.
-- [x] Initial web workspace and AI chat client.
-- [x] FastAPI backend and provider adapters.
-- [x] Provider credentials remain server-side.
-- [ ] Automated build/test run in GitHub Actions.
-- [ ] Live provider connection tests (requires user API keys or local Ollama).
-- [ ] Authentication and persistent user/project data.
-- [ ] Agent orchestrator and tool permission system.
+## Implemented in this foundation
+- [x] Personal AI OS architecture and security baseline.
+- [x] Responsive Next.js web workspace and model chat UI.
+- [x] FastAPI backend.
+- [x] Server-side adapters for OpenAI, Gemini, Anthropic, DeepSeek and opt-in Ollama.
+- [x] Provider configuration status endpoint that never returns secrets.
+- [x] Request validation, bounded prompts, CORS allow-list, request rate limiting and upstream timeouts.
+- [x] Initial API tests and GitHub Actions CI workflow.
+
+## Not yet implemented
+- [ ] Verified CI pass on the converted main branch.
+- [ ] Authentication, user accounts and project-level authorization.
+- [ ] Persistent conversations, projects and memory/RAG.
+- [ ] Master orchestrator, specialist agents and agent-to-agent delegation.
+- [ ] Typed tool registry, approvals, isolated code runner and browser agent.
+- [ ] Plugin marketplace with OAuth/API connect, test, permissions, logs and disconnect.
+- [ ] MCP client/server lifecycle and n8n-style visual workflow engine.
+- [ ] Document ingestion, design studio, coding workspace and terminal.
+- [ ] Tauri desktop and Expo mobile clients.
+- [ ] Production deployment, monitoring, backups and security review.
+
+## Provider credentials
+Set credentials only as backend environment secrets. No real API keys are committed. Providers show configured only when the corresponding server-side key exists; Ollama is disabled unless `OLLAMA_ENABLED=true`.
 
 ## Honesty rule
-No build, test, deployment, provider connection or feature is marked complete without direct verification.
+A module is not marked complete until implementation and relevant tests are verified. No live provider connection, production deployment or build success is claimed without direct evidence.
