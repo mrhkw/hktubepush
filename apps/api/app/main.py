@@ -12,6 +12,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from app.connectors import router as connectors_router
+
 Provider = Literal["openai", "gemini", "anthropic", "deepseek", "groq", "ollama"]
 
 WEB_ORIGIN = os.getenv("WEB_ORIGIN", "http://localhost:3000")
@@ -22,7 +24,8 @@ OLLAMA_ENABLED = os.getenv("OLLAMA_ENABLED", "false").lower() == "true"
 MODEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,255}$")
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[f"{RATE_LIMIT}/minute"])
-app = FastAPI(title="Personal AI OS API", version="0.2.0")
+app = FastAPI(title="Personal AI OS API", version="0.3.0")
+app.include_router(connectors_router)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
