@@ -1,0 +1,81 @@
+import { useEffect, useState, type ComponentType } from "react";
+import { trpc } from "@/lib/trpc";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { httpBatchLink } from "@trpc/client";
+import { createRoot } from "react-dom/client";
+import superjson from "superjson";
+import App from "./App";
+import { supabase } from "./lib/supabase";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { recoverFromAssetLoadFailure } from "./lib/runtimeRecovery";
+import "./index.css";
+import "./light-theme.css";
+import "./hktube-brand.css";
+import "./hkw-loader.css";
+import "./appearance.css";
+import { initializeHkTubeAppearance } from "./lib/appearance";
+
+initializeHkTubeAppearance();
+
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, gcTime: 5 * 60_000, refetchOnWindowFocus: false, retry: 1 } } });
+
+async function authFetch(input: RequestInfo | URL, init?: RequestInit) {
+  const { data: initial } = await supabase.auth.getSession();
+  const firstHeaders = new Headers(init?.headers ?? {});
+  if (initial.session?.access_token) firstHeaders.set("Authorization", `Bearer ${initial.session.access_token}`);
+  const first = await globalThis.fetch(input, { ...(init ?? {}), headers: firstHeaders, credentials: initial.session ? "omit" : "include" });
+  if (first.status !== 401 && first.status !== 403) return first;
+  const { data: refreshed, error } = await supabase.auth.refreshSession();
+  const token = refreshed.session?.access_token;
+  if (error || !token) return first;
+  const retryHeaders = new Headers(init?.headers ?? {});
+  retryHeaders.set("Authorization", `Bearer ${token}`);
+  return globalThis.fetch(input, { ...(init ?? {}), headers: retryHeaders, credentials: "omit" });
+}
+
+const trpcClient = trpc.createClient({ links: [httpBatchLink({ url: "/api/trpc", transformer: superjson, async headers() { const { data } = await supabase.auth.getSession(); if (data.session?.access_token) return { Authorization: `Bearer ${data.session.access_token}` }; return {}; }, fetch: authFetch })] });
+function SafeEnhancements() { const [LanguageRuntime, setLanguageRuntime] = useState<ComponentType | null>(null); const [AccountBootstrap, setAccountBootstrap] = useState<ComponentType | null>(null); const [ThemeRuntime, setThemeRuntime] = useState<ComponentType | null>(null); useEffect(() => { let cancelled = false; const load = async () => { try { const [language, account, theme] = await Promise.all([import("./components/LanguageRuntime"), import("./components/AccountBootstrap"), import("./components/ThemeManager")]); if (cancelled) return; setLanguageRuntime(() => language.LanguageRuntime); setAccountBootstrap(() => account.AccountBootstrap); setThemeRuntime(() => theme.ThemeManager); } catch (error) { console.warn("[HkTube] optional enhancement unavailable", error); } }; const timer = window.setTimeout(load, 3500); return () => { cancelled = true; window.clearTimeout(timer); }; }, []); return <ErrorBoundary>{LanguageRuntime ? <LanguageRuntime /> : null}{AccountBootstrap ? <AccountBootstrap /> : null}{ThemeRuntime ? <ThemeRuntime /> : null}</ErrorBoundary>; }
+function installRuntimeRecovery() {
+  window.addEventListener("vite:preloadError", event => {
+    event.preventDefault();
+    void recoverFromAssetLoadFailure();
+  });
+}
+installRuntimeRecovery();
+
+// Warm the first route immediately after the browser gets a chance to paint.
+// This keeps Home code-split while removing the lazy-chunk wait from the critical interaction path.
+const warmHome = () => { void import("./pages/SupabaseHome").catch(() => undefined); };
+const idleWindow = window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number };
+if (typeof idleWindow.requestIdleCallback === "function") {
+  idleWindow.requestIdleCallback(warmHome, { timeout: 120 });
+} else {
+  window.setTimeout(warmHome, 60);
+}
+
+// Prefetch only when the user shows intent by hovering a local navigation link.
+// This keeps the initial bundle lean while making the next route feel instant.
+const routePrefetchers: Record<string, () => Promise<unknown>> = {
+  "/explore": () => import("./pages/HkTubeExplore"),
+  "/clips": () => import("./pages/Clips"),
+  "/ai": () => import("./pages/AIChat"),
+  "/upload": () => import("./pages/UploadStudio"),
+  "/studio": () => import("./pages/CreatorStudio"),
+};
+const prefetchedRoutes = new Set<string>();
+window.addEventListener("pointerover", event => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const link = target.closest<HTMLAnchorElement>("a[href]");
+  if (!link || link.target === "_blank" || link.dataset.prefetched === "true") return;
+  let path = "";
+  try { path = new URL(link.href, window.location.origin).pathname; } catch { return; }
+  const load = routePrefetchers[path];
+  if (!load || prefetchedRoutes.has(path)) return;
+  prefetchedRoutes.add(path);
+  link.dataset.prefetched = "true";
+  void load().catch(() => prefetchedRoutes.delete(path));
+}, { passive: true });
+
+if ("serviceWorker" in navigator) window.addEventListener("load", () => { void navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(error => console.warn("[PWA] service worker unavailable", error)); });
+createRoot(document.getElementById("root")!).render(<ErrorBoundary><trpc.Provider client={trpcClient} queryClient={queryClient}><QueryClientProvider client={queryClient}><App /><SafeEnhancements /></QueryClientProvider></trpc.Provider></ErrorBoundary>);
