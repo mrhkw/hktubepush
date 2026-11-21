@@ -6,13 +6,16 @@ on:
       - main
       - personal-ai
     paths:
-      - "personal-ai/**"
+      - "apps/**"
+      - "*.md"
+      - ".env.example"
       - ".github/workflows/personal-ai-ci.yml"
   pull_request:
     branches:
+      - main
       - personal-ai
     paths:
-      - "personal-ai/**"
+      - "apps/**"
       - ".github/workflows/personal-ai-ci.yml"
   workflow_dispatch:
 
