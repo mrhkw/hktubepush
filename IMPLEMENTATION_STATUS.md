@@ -23,7 +23,12 @@ Updated: 2026-11-21
 - [ ] Persistent conversations, projects and memory/RAG.
 - [ ] Master orchestrator, specialist agents and agent-to-agent delegation.
 - [ ] Typed tool registry, approvals, isolated code runner and browser agent.
-- [ ] Plugin marketplace with OAuth/API connect, test, permissions, logs and disconnect.
+- [ ] Full plugin marketplace UI, permissions UI, audit logs and connector test UI.
+- [x] Backend OAuth 2.0 authorization-code + PKCE foundation for Google Workspace and GitHub.
+- [x] AES-256-GCM encrypted server-side connector token vault and disconnect endpoint.
+- [x] Read-only Gmail search, Drive search, Calendar event listing and GitHub repository tools.
+- [ ] OAuth mobile/web callback UX and live account connection verification.
+- [ ] Additional connectors (Notion, Slack, Linear, Dropbox, Vercel, Supabase) and provider-specific write approvals.
 - [ ] MCP client/server lifecycle and n8n-style visual workflow engine.
 - [ ] Document ingestion, design studio, coding workspace and terminal.
 - [ ] Tauri desktop and Expo mobile clients.
