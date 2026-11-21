@@ -1,28 +1,31 @@
 # Personal AI OS Android Feature Status
 
-This status is deliberately conservative. A screen or data model is not considered a working integration until its end-to-end behavior is tested.
+Status is conservative: a feature is complete only after its end-to-end behavior and Android build are verified.
 
-## Existing in this branch
-- Android Expo client with direct single-turn chat for OpenAI, Gemini, Anthropic and DeepSeek.
-- Provider keys stored on-device with Expo SecureStore.
-- Android release APK workflow and TypeScript check.
+## Implemented in this branch
+- Android-only Expo app foundation; no hosted web dashboard or API backend is required.
+- Secure on-device provider key storage using Expo SecureStore / Android Keystore.
+- API Manager UI for OpenAI, Gemini, Anthropic Claude, DeepSeek, Groq, OpenRouter and Cloudflare Workers AI.
+- Cloudflare Account ID secure storage.
+- Provider model discovery and automatic model selection after saving a provider key.
+- Manual model selection with the selected model saved securely on-device.
+- Chat requests wired to all seven provider adapters.
+- Local workflow data model with explicit approval-state handling.
+- Supported file-extension validation and bounded analysis prompt helper.
+- GitHub Actions release APK workflow is configured on this branch.
 
-## Added foundation in this change
-- Secure provider registry extended for OpenAI, Gemini, Anthropic, DeepSeek, Groq, OpenRouter and Cloudflare Workers AI.
-- Provider-specific model discovery and automatic default model selection helpers.
-- Cloudflare Account ID secure storage helper.
-- Local workflow persistence and explicit approval-state model.
-- Supported document extension validation and bounded file-analysis prompt builder.
+## Still incomplete
+- Coding Studio editor, project/file workspace, and isolated code execution.
+- Design Studio screens, design generation and export.
+- File picker and actual PDF/DOCX/XLSX/CSV extraction. The current file helper is not a complete file-analysis feature.
+- Workflow builder UI and real workflow step execution. The current workflow helper is local persistence/status foundation only.
+- Multi-agent orchestration, persistent memory/RAG, MCP, browser automation and plugin marketplace.
+- Provider live-account validation for every model list and chat endpoint.
+- GitHub Actions Android APK build verification for the latest commit.
+- Physical Android installation and real-device smoke testing.
 
-## Not yet complete / not to be advertised as working
-- Provider registry has not yet been wired into the main app settings/chat UI.
-- Provider model discovery has not yet been tested against live provider accounts.
-- DOCX/XLSX/PDF binary extraction and upload UI are not implemented by the helpers alone.
-- Coding Studio editor, project filesystem, terminal and isolated execution sandbox are not implemented.
-- Design Studio generation/export UI is not implemented.
-- Visual workflow editor, background scheduling, webhook triggers, retries and real workflow execution are not implemented.
-- Multi-agent orchestration, persistent semantic memory/RAG, MCP, browser automation and plugin marketplace are not implemented.
-- Physical Android install and on-device smoke tests are pending.
-
-## Security boundary
-Provider secrets are local to this Android installation. Never commit provider keys to GitHub. Never run AI-generated code directly inside the app process. Any future execution capability must use an isolated, permission-limited environment and explicit user approval for external or destructive actions.
+## Security boundaries
+- Provider secrets remain on this device and are not committed to the repository.
+- Direct-device API keys are exposed to a compromised, rooted or instrumented device. Use provider-side usage limits and revoke keys if the device is lost.
+- Never execute AI-generated code inside the app process. Any future execution feature must use an isolated, permission-limited environment with explicit approval for external or destructive actions.
+- Provider usage may incur charges; a saved key does not imply free access.
