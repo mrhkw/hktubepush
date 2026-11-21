@@ -37,7 +37,7 @@ const executeTool = async (step: PlanStep, request: AgentRequest) => {
 };
 
 const approvalFor = (step: PlanStep) => {
-  const id = randomUUID();
+  const id = step.id;
   const request: ApprovalRequest = { id, action: step.title, tool: step.tool ?? "webhook", input: step.input ?? {}, reason: step.description, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString() };
   const token = makeApprovalToken();
   approvals.set(id, { request, token, expiresAt: Date.now() + 10 * 60_000, consumed: false });
