@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - personal-ai
+      - feature/android-private-agent
     paths:
       - "apps/**"
       - "*.md"
