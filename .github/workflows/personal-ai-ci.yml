@@ -45,6 +45,7 @@ jobs:
       - run: pytest -q
         env:
           WEB_ORIGIN: http://localhost:3000
+          PYTHONPATH: .
 
   web:
     name: Web checks
