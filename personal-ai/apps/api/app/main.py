@@ -13,11 +13,11 @@ from slowapi.util import get_remote_address
 
 Provider = Literal["openai", "gemini", "anthropic", "deepseek", "ollama"]
 
-APP_ENV = os.getenv("APP_ENV", "development")
 WEB_ORIGIN = os.getenv("WEB_ORIGIN", "http://localhost:3000")
 TIMEOUT = httpx.Timeout(float(os.getenv("UPSTREAM_TIMEOUT_SECONDS", "45")))
 MAX_PROMPT_CHARS = int(os.getenv("MAX_PROMPT_CHARS", "20000"))
 RATE_LIMIT = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
+OLLAMA_ENABLED = os.getenv("OLLAMA_ENABLED", "false").lower() == "true"
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[f"{RATE_LIMIT}/minute"])
 app = FastAPI(title="Personal AI OS API", version="0.1.0")
@@ -51,7 +51,7 @@ def provider_status() -> dict[str, bool]:
         "gemini": bool(os.getenv("GEMINI_API_KEY")),
         "anthropic": bool(os.getenv("ANTHROPIC_API_KEY")),
         "deepseek": bool(os.getenv("DEEPSEEK_API_KEY")),
-        "ollama": bool(os.getenv("OLLAMA_BASE_URL")),
+        "ollama": OLLAMA_ENABLED,
     }
 
 
@@ -102,6 +102,8 @@ async def run_provider(payload: ChatRequest, model: str) -> str:
         return await openai_compatible("https://api.deepseek.com/v1", key, model, payload.message, payload.system)
 
     if provider == "ollama":
+        if not OLLAMA_ENABLED:
+            raise HTTPException(status_code=503, detail="Ollama is disabled. Set OLLAMA_ENABLED=true on the API host.")
         base = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
         messages = []
         if payload.system:
@@ -124,7 +126,7 @@ async def run_provider(payload: ChatRequest, model: str) -> str:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             response = await client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-                params={"key": key},
+                headers={"x-goog-api-key": key},
                 json={"contents": [{"parts": [{"text": prompt}]}]},
             )
             response.raise_for_status()
