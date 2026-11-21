@@ -129,25 +129,17 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     let active = true;
     void Promise.all([
-      ...PROVIDER_IDS.map(async (id) => [id, await readProviderSecret(id)] as const),
-      ...PROVIDER_IDS.map(async (id) => [id, await getProviderModel(id)] as const),
-      readCloudflareAccountId().then((value) => ["cloudflare-account", value] as const),
-    ]).then((entries) => {
+      Promise.all(PROVIDER_IDS.map(async (id) => [id, await readProviderSecret(id)] as const)),
+      Promise.all(PROVIDER_IDS.map(async (id) => [id, await getProviderModel(id)] as const)),
+      readCloudflareAccountId(),
+    ]).then(([secretEntries, modelEntries, storedAccountId]) => {
       if (!active) return;
-      const loadedSecrets = Object.fromEntries(PROVIDER_IDS.map((id) => [id, ""])) as ProviderSecrets;
-      const loadedModels = Object.fromEntries(PROVIDER_IDS.map((id) => [id, PROVIDERS[id].baseModel])) as ModelSelections;
-      for (const entry of entries) {
-        if (entry[0] === "cloudflare-account") {
-          setAccountId(entry[1]);
-          setAccountIdInput(entry[1]);
-        } else if (PROVIDER_IDS.includes(entry[0] as ProviderId)) {
-          const id = entry[0] as ProviderId;
-          if (entry[1].startsWith("gpt-") || entry[1].includes("/") || entry[1].includes("flash") || entry[1].includes("haiku") || entry[1].includes("llama") || entry[1].includes("deepseek")) loadedModels[id] = entry[1];
-          else loadedSecrets[id] = entry[1];
-        }
-      }
+      const loadedSecrets = Object.fromEntries(secretEntries) as ProviderSecrets;
+      const loadedModels = Object.fromEntries(modelEntries) as ModelSelections;
       setSecrets(loadedSecrets);
       setModels(loadedModels);
+      setAccountId(storedAccountId);
+      setAccountIdInput(storedAccountId);
       setKeyInput(loadedSecrets.gemini);
     }).catch(() => setStatus("Secure storage could not be read."));
     return () => { active = false; };
