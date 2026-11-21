@@ -117,8 +117,7 @@ async def list_connectors() -> dict[str, Any]:
     return {"connectors": [{"id": key, "name": item["label"], "connected": key in by_id, "account": by_id[key]["account_label"] if key in by_id else None, "scopes": json.loads(by_id[key]["scopes"]) if key in by_id else []} for key, item in PROVIDERS.items()]}
 
 
-@router.get("/{provider}/connect", dependencies=[Depends(require_api_auth)])
-async def connect(provider: str) -> RedirectResponse:
+def _create_authorization_url(provider: str) -> str:
     config = PROVIDERS.get(provider)
     if not config:
         raise HTTPException(status_code=404, detail="Connector is not supported.")
@@ -132,8 +131,17 @@ async def connect(provider: str) -> RedirectResponse:
         db.execute("DELETE FROM oauth_states WHERE expires_at < ?", (int(time.time()),))
         db.execute("INSERT INTO oauth_states(state_hash, provider, verifier, expires_at) VALUES(?,?,?,?)", (hashlib.sha256(state.encode()).hexdigest(), provider, verifier, int(time.time()) + 600))
     params = {"client_id": client_id, "redirect_uri": _redirect_uri(provider), "response_type": "code", "scope": " ".join(config["scopes"]), "state": state, "code_challenge": challenge, "code_challenge_method": "S256", **config["extra"]}
-    return RedirectResponse(f"{config['authorize']}?{urlencode(params)}", status_code=302)
+    return f"{config['authorize']}?{urlencode(params)}"
 
+
+@router.post("/{provider}/authorize", dependencies=[Depends(require_api_auth)])
+async def authorize(provider: str) -> dict[str, str]:
+    return {"authorization_url": _create_authorization_url(provider)}
+
+
+@router.get("/{provider}/connect", dependencies=[Depends(require_api_auth)])
+async def connect(provider: str) -> RedirectResponse:
+    return RedirectResponse(_create_authorization_url(provider), status_code=302)
 
 @router.get("/{provider}/callback")
 async def callback(provider: str, code: str = Query(min_length=1, max_length=4096), state: str = Query(min_length=20, max_length=256), error: str | None = None) -> RedirectResponse:
