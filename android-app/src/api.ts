@@ -11,6 +11,8 @@ export type AgentConfig = {
   githubToken?: string;
   webhookAllowlist?: string[];
 };
+export type GithubRepository = { id: number; full_name: string; name: string; owner?: { login: string }; default_branch?: string; private?: boolean };
+export type GithubTreeEntry = { path: string; type: "blob" | "tree"; size?: number };
 
 const cleanBase = (baseUrl: string) => baseUrl.trim().replace(/\/$/, "");
 const requireBaseUrl = (baseUrl: string) => { const value = cleanBase(baseUrl); if (!value) throw new Error("Backend URL is not configured. Open Settings, enter your HTTPS backend URL, and press Save."); return value; };
@@ -71,3 +73,7 @@ export const runAgent = async (config: AgentConfig, goal: string, onEvent: (even
 };
 export const approveAgentAction = (config: AgentConfig, approvalId: string, approvalToken: string) => request<{ ok: true; approvedActionId: string }>(config, "/v1/agent/approve", { approvalId, approvalToken });
 export const inspectFile = (config: AgentConfig, attachment: Attachment) => request<any>(config, "/v1/files/inspect", { attachment });
+export const githubRepositories = (config: AgentConfig) => request<GithubRepository[]>(config, "/v1/github/repositories", { githubToken: config.githubToken });
+export const githubTree = (config: AgentConfig, input: { owner: string; repo: string; branch: string }) => request<{ tree: GithubTreeEntry[] }>(config, "/v1/github/tree", { ...input, githubToken: config.githubToken });
+export const githubFile = (config: AgentConfig, input: { owner: string; repo: string; path: string; branch: string }) => request<{ path: string; sha: string; content: string }>(config, "/v1/github/file", { ...input, githubToken: config.githubToken });
+export const githubCommitFile = (config: AgentConfig, input: { owner: string; repo: string; path: string; branch: string; content: string; message: string }) => request<any>(config, "/v1/github/commit-file", { ...input, githubToken: config.githubToken });

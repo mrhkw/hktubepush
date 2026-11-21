@@ -10,9 +10,31 @@ const github = async (path: string, init: RequestInit, token: string) => {
 const decodeBase64 = (value: string) => Buffer.from(value, "base64").toString("utf8");
 const encodeBase64 = (value: string) => Buffer.from(value, "utf8").toString("base64");
 
+const githubOwnerRepo = (owner: unknown, repo: unknown) => ({ owner: encodeURIComponent(assertNonEmptyString(owner, "github.owner", 100)), repo: encodeURIComponent(assertNonEmptyString(repo, "github.repo", 100)) });
+
+export const githubListRepositories = (token: string) => github("/user/repos?per_page=100&sort=updated", { method: "GET" }, token);
+export const githubListTree = async (owner: string, repo: string, branch = "main", token: string) => {
+  const names = githubOwnerRepo(owner, repo);
+  const ref = await github(`/repos/${names.owner}/${names.repo}/git/ref/heads/${encodeURIComponent(assertNonEmptyString(branch, "github.branch", 120))}`, { method: "GET" }, token);
+  return github(`/repos/${names.owner}/${names.repo}/git/trees/${encodeURIComponent(ref.object.sha)}?recursive=1`, { method: "GET" }, token);
+};
+export const githubReadFile = async (owner: string, repo: string, path: string, branch = "main", token: string) => {
+  const names = githubOwnerRepo(owner, repo);
+  const safePath = encodeURIComponent(assertNonEmptyString(path, "github.path", 500)).replace(/%2F/g, "/");
+  const result = await github(`/repos/${names.owner}/${names.repo}/contents/${safePath}?ref=${encodeURIComponent(branch)}`, { method: "GET" }, token);
+  return { path: result.path, sha: result.sha, content: result.encoding === "base64" ? decodeBase64(result.content) : result.content };
+};
+export const githubCommitFile = async (owner: string, repo: string, path: string, content: string, message: string, branch = "main", token: string) => {
+  const names = githubOwnerRepo(owner, repo);
+  const safePath = assertNonEmptyString(path, "github.path", 500);
+  const safeBranch = assertNonEmptyString(branch, "github.branch", 120);
+  const previous = await githubReadFile(owner, repo, safePath, safeBranch, token).catch(() => undefined);
+  return github(`/repos/${names.owner}/${names.repo}/contents/${safePath}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: assertNonEmptyString(message, "github.message", 500), content: encodeBase64(assertNonEmptyString(content, "github.content", 2_000_000)), branch: safeBranch, ...(previous?.sha ? { sha: previous.sha } : {}) }) }, token);
+};
+
 export const githubTool = async (input: Record<string, unknown>, token: string) => {
   const operation = assertNonEmptyString(input.operation, "github.operation", 40);
-  if (operation === "list_repositories") return github("/user/repos?per_page=100&sort=updated", { method: "GET" }, token);
+  if (operation === "list_repositories") return githubListRepositories(token);
   const owner = assertNonEmptyString(input.owner, "github.owner", 100);
   const repo = assertNonEmptyString(input.repo, "github.repo", 100);
   if (operation === "read_file") {
