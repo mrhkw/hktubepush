@@ -11,6 +11,7 @@ Status is conservative: a feature is complete only after its end-to-end behavior
 - Manual model selection with the selected model saved securely on-device.
 - Chat requests wired to all seven provider adapters.
 - Local workflow data model with explicit approval-state handling.
+- Plugin and connector marketplace screen with built-in tools and third-party connector catalog.
 - Supported file-extension validation and bounded analysis prompt helper.
 - GitHub Actions release APK workflow is configured on this branch.
 
@@ -19,7 +20,8 @@ Status is conservative: a feature is complete only after its end-to-end behavior
 - Design Studio screens, design generation and export.
 - File picker and actual PDF/DOCX/XLSX/CSV extraction. The current file helper is not a complete file-analysis feature.
 - Workflow builder UI and real workflow step execution. The current workflow helper is local persistence/status foundation only.
-- Multi-agent orchestration, persistent memory/RAG, MCP, browser automation and plugin marketplace.
+- Multi-agent orchestration, persistent memory/RAG, MCP and browser automation.
+- Plugin marketplace catalog UI is implemented with search, categories, add/remove state, permission descriptions and SecureStore credential storage. Third-party OAuth handshakes and live tool execution are not yet implemented; a saved token is not proof that a connector works.
 - Provider live-account validation for every model list and chat endpoint.
 - GitHub Actions Android APK build verification for the latest commit.
 - Physical Android installation and real-device smoke testing.
