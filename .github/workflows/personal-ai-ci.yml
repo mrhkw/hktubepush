@@ -3,6 +3,7 @@ name: Personal AI OS CI
 on:
   push:
     branches:
+      - main
       - personal-ai
     paths:
       - "personal-ai/**"
