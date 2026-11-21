@@ -18,7 +18,7 @@ Updated: 2026-11-21
 - [x] Initial API tests and GitHub Actions CI workflow.
 
 ## Not yet implemented
-- [ ] Verified CI pass on the converted main branch.
+- [ ] Verified CI pass on the converted main branch (first run exposed a pytest import-path issue; PYTHONPATH fix committed, rerun pending).
 - [ ] Authentication, user accounts and project-level authorization.
 - [ ] Persistent conversations, projects and memory/RAG.
 - [ ] Master orchestrator, specialist agents and agent-to-agent delegation.
