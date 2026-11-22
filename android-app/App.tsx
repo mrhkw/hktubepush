@@ -40,7 +40,7 @@ export default function App() {
   const config = useMemo<AgentConfig>(() => ({ baseUrl: prefs.backendUrl, backendSecret: secrets.backendSecret || undefined, credentials: credentialsFromSecrets(secrets, prefs.models), githubToken: secrets.github || undefined, webhookAllowlist: prefs.webhookAllowlist, manualPlugins: plugins }), [prefs, secrets, plugins]);
   const saveSettings = async (nextPrefs: Preferences, nextSecrets: SecretState) => {
     setSettingsStatus(undefined);
-    try { await savePreferences(nextPrefs); await saveSecrets(nextSecrets); setPrefs(nextPrefs); setSecrets(nextSecrets); setSettingsStatus({ kind: "success", message: "Saved securely on this device." }); }
+    try { await savePreferences(nextPrefs); const result = await saveSecrets(nextSecrets); setPrefs(nextPrefs); setSecrets(nextSecrets); setSettingsStatus({ kind: "success", message: result.warning ?? "Saved securely on this device." }); }
     catch (error) { setSettingsStatus({ kind: "error", message: error instanceof Error ? error.message : "Could not save settings." }); }
   };
   const loadWorkspaceRepos = async () => { setWorkspaceStatus("Loading repositories…"); try { const repos = await githubRepositories(config); setWorkspaceRepos(repos); setWorkspaceStatus(repos.length ? "Select a repository to browse its files." : "No repositories returned by GitHub."); } catch (error) { setWorkspaceStatus(error instanceof Error ? error.message : "Could not load repositories."); } };
