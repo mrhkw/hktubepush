@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "HkTube Agent",
+    "slug": "hktube-agent",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.mrhkw.hktubeagent",
+      "adaptiveIcon": { "backgroundColor": "#0b1020" }
+    },
+    "plugins": ["expo-document-picker", "expo-secure-store"],
+    "extra": { "backendUrl": "" }
+  }
+}
