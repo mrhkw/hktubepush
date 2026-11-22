@@ -1,0 +1,37 @@
+export type ConnectorCategory = "AI" | "Google" | "Developer" | "Communication" | "Productivity" | "Storage" | "Content" | "Infrastructure" | "Automation";
+export type ConnectorDefinition = { id: string; name: string; category: ConnectorCategory; auth: "OAuth" | "API key" | "MCP" | "Webhook"; description: string; capabilities: string[]; status: "ready" | "setup_required" };
+const c = (id: string, name: string, category: ConnectorCategory, auth: ConnectorDefinition["auth"], description: string, capabilities: string[], status: ConnectorDefinition["status"] = "setup_required"): ConnectorDefinition => ({ id, name, category, auth, description, capabilities, status });
+export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
+  c("groq", "Groq", "AI", "API key", "Fast chat and agent reasoning through the server provider vault.", ["chat", "planning", "summaries"], "ready"),
+  c("openai", "OpenAI", "AI", "API key", "Coding, reasoning, and multimodal models through the server provider vault.", ["coding", "reasoning", "vision"], "ready"),
+  c("gemini", "Gemini", "AI", "API key", "Research and multimodal tasks through the server provider vault.", ["research", "vision", "audio"], "ready"),
+  c("google", "Google account", "Google", "OAuth", "Connect once for Gmail, Drive, Docs, Sheets, Calendar, and YouTube.", ["account", "shared consent"]),
+  c("gmail", "Gmail", "Google", "OAuth", "Search mail, summarize threads, draft and send only after approval.", ["search", "threads", "drafts", "send"]),
+  c("google-drive", "Google Drive", "Google", "OAuth", "Find, read, upload, and update approved files.", ["files", "folders", "search"]),
+  c("google-docs", "Google Docs", "Google", "OAuth", "Read and update approved documents.", ["documents", "content", "comments"]),
+  c("google-sheets", "Google Sheets", "Google", "OAuth", "Read ranges and update approved spreadsheet data.", ["ranges", "cells", "append"]),
+  c("google-calendar", "Google Calendar", "Google", "OAuth", "Read calendars and manage approved events.", ["events", "attendees", "reminders"]),
+  c("youtube", "YouTube", "Content", "OAuth", "Review channels, videos, playlists, comments, and analytics.", ["channels", "videos", "comments", "analytics"]),
+  c("github", "GitHub", "Developer", "OAuth", "Inspect repositories, edit code, create branches, commits, and pull requests.", ["code", "issues", "PRs", "actions"], "ready"),
+  c("gitlab", "GitLab", "Developer", "OAuth", "Repositories, issues, merge requests, and CI/CD.", ["repositories", "issues", "pipelines"]),
+  c("bitbucket", "Bitbucket", "Developer", "OAuth", "Repositories, pull requests, and pipelines.", ["repositories", "PRs", "pipelines"]),
+  c("vercel", "Vercel", "Infrastructure", "OAuth", "Inspect deployments, logs, projects, and domains.", ["deployments", "logs", "domains"]),
+  c("supabase", "Supabase", "Infrastructure", "API key", "Inspect approved database, storage, auth, and edge-function state.", ["database", "storage", "logs"]),
+  c("slack", "Slack", "Communication", "OAuth", "Read authorized conversations and send approved messages.", ["channels", "threads", "messages"]),
+  c("discord", "Discord", "Communication", "OAuth", "Read authorized channels and send approved bot messages.", ["servers", "channels", "messages"]),
+  c("outlook", "Outlook and Teams", "Communication", "OAuth", "Connect Microsoft 365 mail, calendar, files, and conversations.", ["mail", "calendar", "teams"]),
+  c("notion", "Notion", "Productivity", "OAuth", "Search knowledge and update approved pages and databases.", ["pages", "databases", "comments"]),
+  c("linear", "Linear", "Productivity", "OAuth", "Triage issues, projects, comments, and cycles.", ["issues", "projects", "cycles"]),
+  c("jira", "Jira", "Productivity", "OAuth", "Search and update approved issues and workflows.", ["issues", "projects", "comments"]),
+  c("trello", "Trello", "Productivity", "API key", "Organize approved boards, lists, and cards.", ["boards", "lists", "cards"]),
+  c("dropbox", "Dropbox", "Storage", "OAuth", "Find and manage approved files and folders.", ["files", "folders", "search"]),
+  c("onedrive", "OneDrive", "Storage", "OAuth", "Find and manage approved Microsoft files.", ["files", "folders", "search"]),
+  c("figma", "Figma", "Productivity", "OAuth", "Inspect design files and supported comments.", ["files", "comments", "metadata"]),
+  c("stripe", "Stripe", "Infrastructure", "API key", "Inspect approved billing data; payment writes require strong confirmation.", ["customers", "subscriptions", "payments"]),
+  c("shopify", "Shopify", "Content", "OAuth", "Manage approved products, orders, and store data.", ["products", "orders", "customers"]),
+  c("airtable", "Airtable", "Productivity", "API key", "Query and update approved bases and records.", ["bases", "tables", "records"]),
+  c("zapier", "Zapier", "Automation", "OAuth", "Trigger approved automation workflows.", ["workflows", "webhooks", "actions"]),
+  c("mcp", "MCP server", "Automation", "MCP", "Install a remote tool server and expose its declared tools to the agent.", ["tools", "resources", "prompts"]),
+  c("custom-rest", "Custom REST API", "Automation", "Webhook", "Add a user-owned REST service with a saved credential and host allowlist.", ["OpenAPI", "REST", "webhooks"], "ready"),
+];
+export const CONNECTOR_CATEGORIES = ["All", ...Array.from(new Set(CONNECTOR_CATALOG.map(item => item.category)))];
