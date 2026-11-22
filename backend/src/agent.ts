@@ -10,6 +10,11 @@ const writeOperations = new Set(["commit_file", "create_branch", "create_pull_re
 
 const inputString = (value: unknown) => typeof value === "string" ? value : "";
 const stepId = (goal: string, index: number) => createHash("sha256").update(`${goal.trim().toLowerCase()}::${index}`).digest("hex").slice(0, 24);
+const connectorWords = /plugin|custom api|rest api|external api|manual connector|google|gmail|drive|docs|sheets|calendar|youtube|github|gitlab|bitbucket|vercel|supabase|slack|discord|outlook|teams|notion|linear|jira|trello|dropbox|onedrive|figma|stripe|shopify|airtable|zapier|mcp/;
+const matchingPlugin = (goal: string, plugins: AgentRequest["manualPlugins"] = []) => {
+  const lower = goal.toLowerCase();
+  return plugins.find(plugin => lower.includes(plugin.name.toLowerCase()) || lower.includes(plugin.id.toLowerCase())) ?? (plugins.length === 1 ? plugins[0] : undefined);
+};
 const inferSteps = (goal: string, manualPlugins: AgentRequest["manualPlugins"] = []): PlanStep[] => {
   let index = 0;
   const nextId = () => stepId(goal, index++);
@@ -19,7 +24,17 @@ const inferSteps = (goal: string, manualPlugins: AgentRequest["manualPlugins"] =
   if (/fetch|read url|open https?:/.test(lower)) steps.push({ id: nextId(), title: "Read the requested page", description: "Fetch the requested public page with SSRF protections.", tool: "web_fetch", input: { url: goal.match(/https?:\/\/[^\s]+/)?.[0] ?? "" }, risky: false });
   if (/github|repository|repo|pull request|commit|branch|file/.test(lower)) steps.push({ id: nextId(), title: "Inspect GitHub context", description: "Use the GitHub connector to inspect the requested repository or file.", tool: "github", input: { operation: "list_repositories" }, risky: false });
   if (/webhook|send request|call api/.test(lower)) steps.push({ id: nextId(), title: "Call the external connector", description: "Send the requested outbound request only after explicit approval.", tool: "webhook", input: {}, risky: true });
-  if (/plugin|custom api|rest api|external api|manual connector/.test(lower)) steps.push({ id: nextId(), title: "Use the configured manual connector", description: "Call the selected user-configured API plugin with its saved permissions.", tool: "manual_plugin", input: manualPlugins?.length === 1 ? { pluginId: manualPlugins[0]?.id } : {}, risky: true });
+  if (connectorWords.test(lower) && !/github|repository|repo|pull request|commit|branch|file/.test(lower)) {
+    const plugin = matchingPlugin(goal, manualPlugins);
+    steps.push({
+      id: nextId(),
+      title: plugin ? `Use ${plugin.name}` : "Connect the requested app",
+      description: plugin ? "Call the enabled connector using its securely stored credentials." : "This app is not connected yet. Connect it in Connectors, save its credential, then retry this task.",
+      tool: "manual_plugin",
+      input: plugin ? { pluginId: plugin.id } : { pluginId: "__missing_connector__" },
+      risky: true,
+    });
+  }
   steps.push({ id: nextId(), title: "Prepare the answer", description: "Summarize verified results and remaining actions.", risky: false });
   return steps.slice(0, config.maxAgentSteps);
 };
